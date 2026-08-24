@@ -1,6 +1,3 @@
-# prosthetic_arm
-A low-cost EMG-controlled prosthetic hand featuring real-time muscle signal processing, five-finger servo actuation, and web-based monitoring
-
 # EMG-Controlled Prosthetic Hand
 
 An ESP32-based prosthetic hand controlled using muscle activity captured through an EMG sensor. The system uses five servo motors to actuate the fingers and includes a web-based dashboard for manual servo control and EMG monitoring.
