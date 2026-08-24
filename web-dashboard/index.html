@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Prosthetic Hand Control</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      background: #f3f4f6;
+      margin-top: 40px;
+    }
+
+    .status-box {
+      background: #fff;
+      padding: 15px;
+      border-radius: 8px;
+      width: 300px;
+      margin: auto;
+      box-shadow: 0px 2px 5px rgba(0,0,0,0.1);
+    }
+
+    h2 {
+      color: #333;
+    }
+
+    p {
+      margin: 5px;
+    }
+
+    button {
+      padding: 10px 16px;
+      margin: 8px;
+      border-radius: 6px;
+      border: none;
+      background: #0b65a6;
+      color: white;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #094f82;
+    }
+
+    input[type=range] {
+      width: 200px;
+      margin: 10px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <h2>Prosthetic Hand Dashboard</h2>
+
+  <div class="status-box">
+    <p><b>EMG Value:</b> <span id="emgVal">--</span></p>
+    <p><b>Hand State:</b> <span id="handState">--</span></p>
+  </div>
+
+  <hr>
+
+  <div>
+    <button onclick="setAllServos(0)">All to 0°</button>
+    <button onclick="setAllServos(90)">All to 90°</button>
+    <button onclick="setAllServos(180)">All to 180°</button>
+  </div>
+
+  <div id="servos"></div>
+
+  <script>
+    const servoNames = ["Index", "Pinky", "Middle", "Ring", "Thumb"];
+    const servosDiv = document.getElementById("servos");
+
+    for (let i = 0; i < 5; i++) {
+      const div = document.createElement("div");
+
+      div.innerHTML = `
+        <h3>${servoNames[i]} Finger</h3>
+        <input
+          type="range"
+          min="0"
+          max="180"
+          value="90"
+          id="servo${i}"
+          oninput="moveServo(${i}, this.value)"
+        >
+        <p>Angle: <span id="angle${i}">90</span>°</p>
+      `;
+
+      servosDiv.appendChild(div);
+    }
+
+    async function moveServo(id, angle) {
+      document.getElementById(`angle${id}`).textContent = angle;
+
+      try {
+        await fetch(`/servo?id=${id}&angle=${angle}`);
+      } catch (err) {
+        console.error("Servo move failed:", err);
+      }
+    }
+
+    async function setAllServos(angle) {
+      for (let i = 0; i < 5; i++) {
+        document.getElementById(`servo${i}`).value = angle;
+        document.getElementById(`angle${i}`).textContent = angle;
+        await moveServo(i, angle);
+      }
+    }
+
+    async function updateEmg() {
+      try {
+        const res = await fetch('/get-emg');
+        const data = await res.json();
+
+        document.getElementById('emgVal').textContent = data.emgValue;
+        document.getElementById('handState').textContent = data.handState;
+      } catch (err) {
+        console.error("Failed to fetch EMG:", err);
+      }
+    }
+
+    setInterval(updateEmg, 5000);
+    updateEmg();
+  </script>
+
+</body>
+</html>
