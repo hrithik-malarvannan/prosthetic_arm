@@ -1,0 +1,40 @@
+body {
+  font-family: Arial, sans-serif;
+  margin: 24px;
+  background: #f6f8fb;
+  color: #111;
+}
+
+h1 {
+  color: #0b65a6;
+}
+
+.servo-row {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 16px;
+}
+
+button {
+  padding: 8px 12px;
+  margin: 6px;
+  border-radius: 6px;
+  border: none;
+  background: #0b65a6;
+  color: white;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+button:hover {
+  background: #094e82;
+}
+
+#logBox {
+  height: 260px;
+  overflow: auto;
+  border: 1px solid #ddd;
+  background: #fff;
+  padding: 8px;
+  border-radius: 6px;
+}
