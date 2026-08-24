@@ -1,128 +1,354 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
+
 <head>
-  <title>Prosthetic Hand Control</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      text-align: center;
-      background: #f3f4f6;
-      margin-top: 40px;
-    }
-
-    .status-box {
-      background: #fff;
-      padding: 15px;
-      border-radius: 8px;
-      width: 300px;
-      margin: auto;
-      box-shadow: 0px 2px 5px rgba(0,0,0,0.1);
-    }
-
-    h2 {
-      color: #333;
-    }
-
-    p {
-      margin: 5px;
-    }
-
-    button {
-      padding: 10px 16px;
-      margin: 8px;
-      border-radius: 6px;
-      border: none;
-      background: #0b65a6;
-      color: white;
-      cursor: pointer;
-    }
-
-    button:hover {
-      background: #094f82;
-    }
-
-    input[type=range] {
-      width: 200px;
-      margin: 10px;
-    }
-  </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EMG Prosthetic Hand</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
 
-  <h2>Prosthetic Hand Dashboard</h2>
+  <div class="container">
 
-  <div class="status-box">
-    <p><b>EMG Value:</b> <span id="emgVal">--</span></p>
-    <p><b>Hand State:</b> <span id="handState">--</span></p>
+    <header>
+      <h1>EMG Prosthetic Hand</h1>
+      <p>ESP32-Based Muscle-Controlled Prosthetic System</p>
+
+      <div class="connection">
+        <span id="statusDot"></span>
+        <span id="statusText">Connecting...</span>
+      </div>
+    </header>
+
+    <section class="stats">
+
+      <div class="card">
+        <h3>EMG Value</h3>
+        <div class="value" id="emgVal">--</div>
+      </div>
+
+      <div class="card">
+        <h3>Muscle Activity</h3>
+        <div class="value" id="activityVal">--</div>
+      </div>
+
+      <div class="card">
+        <h3>Hand State</h3>
+        <div class="value" id="handState">--</div>
+      </div>
+
+      <div class="card">
+        <h3>Mode</h3>
+        <div class="value" id="mode">--</div>
+      </div>
+
+    </section>
+
+    <section class="panel">
+
+      <h2>Control Mode</h2>
+
+      <button class="mode-button" onclick="setMode('auto')">
+        EMG AUTO
+      </button>
+
+      <button class="mode-button" onclick="setMode('manual')">
+        MANUAL
+      </button>
+
+      <p id="modeMessage">--</p>
+
+    </section>
+
+    <section class="panel">
+
+      <h2>Quick Control</h2>
+
+      <button onclick="setAllServos(0)">
+        OPEN
+      </button>
+
+      <button onclick="setAllServos(90)">
+        90°
+      </button>
+
+      <button onclick="setAllServos(180)">
+        CLOSE
+      </button>
+
+    </section>
+
+    <section class="panel">
+
+      <h2>Individual Finger Control</h2>
+
+      <div id="servos"></div>
+
+    </section>
+
+    <section class="panel">
+
+      <h2>System Information</h2>
+
+      <p>
+        ESP32 IP:
+        <span id="espIp">--</span>
+      </p>
+
+      <p>
+        EMG Threshold:
+        <span id="threshold">--</span>
+      </p>
+
+    </section>
+
   </div>
-
-  <hr>
-
-  <div>
-    <button onclick="setAllServos(0)">All to 0°</button>
-    <button onclick="setAllServos(90)">All to 90°</button>
-    <button onclick="setAllServos(180)">All to 180°</button>
-  </div>
-
-  <div id="servos"></div>
 
   <script>
-    const servoNames = ["Index", "Pinky", "Middle", "Ring", "Thumb"];
-    const servosDiv = document.getElementById("servos");
+
+    const servoNames = [
+      "Thumb",
+      "Index",
+      "Middle",
+      "Ring",
+      "Pinky"
+    ];
+
+    const servosDiv =
+      document.getElementById("servos");
 
     for (let i = 0; i < 5; i++) {
-      const div = document.createElement("div");
+
+      const div =
+        document.createElement("div");
+
+      div.className = "servo-control";
 
       div.innerHTML = `
-        <h3>${servoNames[i]} Finger</h3>
+        <div class="servo-header">
+          <h3>${servoNames[i]}</h3>
+          <span id="angle${i}">0°</span>
+        </div>
+
         <input
           type="range"
           min="0"
           max="180"
-          value="90"
+          value="0"
           id="servo${i}"
           oninput="moveServo(${i}, this.value)"
         >
-        <p>Angle: <span id="angle${i}">90</span>°</p>
       `;
 
       servosDiv.appendChild(div);
     }
 
     async function moveServo(id, angle) {
-      document.getElementById(`angle${id}`).textContent = angle;
+
+      document.getElementById(
+        `angle${id}`
+      ).textContent = `${angle}°`;
 
       try {
-        await fetch(`/servo?id=${id}&angle=${angle}`);
-      } catch (err) {
-        console.error("Servo move failed:", err);
+
+        const response =
+          await fetch(
+            `/servo?id=${id}&angle=${angle}`
+          );
+
+        if (!response.ok) {
+          throw new Error(
+            "Servo command failed"
+          );
+        }
+
+      } catch (error) {
+
+        console.error(error);
+
+        document.getElementById(
+          "modeMessage"
+        ).textContent =
+          "Failed to control servo";
       }
     }
 
     async function setAllServos(angle) {
+
       for (let i = 0; i < 5; i++) {
-        document.getElementById(`servo${i}`).value = angle;
-        document.getElementById(`angle${i}`).textContent = angle;
+
+        document.getElementById(
+          `servo${i}`
+        ).value = angle;
+
+        document.getElementById(
+          `angle${i}`
+        ).textContent = `${angle}°`;
+
         await moveServo(i, angle);
       }
     }
 
-    async function updateEmg() {
-      try {
-        const res = await fetch('/get-emg');
-        const data = await res.json();
+    async function setMode(mode) {
 
-        document.getElementById('emgVal').textContent = data.emgValue;
-        document.getElementById('handState').textContent = data.handState;
-      } catch (err) {
-        console.error("Failed to fetch EMG:", err);
+      try {
+
+        const response =
+          await fetch(
+            `/mode?mode=${mode}`
+          );
+
+        const data =
+          await response.json();
+
+        if (!response.ok) {
+          throw new Error(
+            data.error || "Mode change failed"
+          );
+        }
+
+        document.getElementById(
+          "modeMessage"
+        ).textContent =
+          mode.toUpperCase() +
+          " mode enabled";
+
+        updateData();
+
+      } catch (error) {
+
+        document.getElementById(
+          "modeMessage"
+        ).textContent =
+          "Failed to change mode";
+
+        console.error(error);
       }
     }
 
-    setInterval(updateEmg, 5000);
-    updateEmg();
+    async function updateData() {
+
+      try {
+
+        const response =
+          await fetch("/get-emg");
+
+        const data =
+          await response.json();
+
+        document.getElementById(
+          "emgVal"
+        ).textContent =
+          data.emgValue;
+
+        document.getElementById(
+          "activityVal"
+        ).textContent =
+          Math.round(data.activity);
+
+        document.getElementById(
+          "handState"
+        ).textContent =
+          data.handState;
+
+        document.getElementById(
+          "mode"
+        ).textContent =
+          data.mode;
+
+        document.getElementById(
+          "threshold"
+        ).textContent =
+          data.threshold;
+
+        setConnection(true);
+
+      } catch (error) {
+
+        setConnection(false);
+
+        console.error(
+          "Failed to fetch EMG data:",
+          error
+        );
+      }
+    }
+
+    async function updateStatus() {
+
+      try {
+
+        const response =
+          await fetch("/status");
+
+        const data =
+          await response.json();
+
+        if (data.wifi) {
+
+          document.getElementById(
+            "espIp"
+          ).textContent =
+            data.ip;
+
+          setConnection(true);
+
+        } else {
+
+          setConnection(false);
+        }
+
+      } catch (error) {
+
+        setConnection(false);
+      }
+    }
+
+    function setConnection(connected) {
+
+      const dot =
+        document.getElementById(
+          "statusDot"
+        );
+
+      const text =
+        document.getElementById(
+          "statusText"
+        );
+
+      if (connected) {
+
+        dot.className = "connected";
+
+        text.textContent =
+          "ESP32 Connected";
+
+      } else {
+
+        dot.className = "disconnected";
+
+        text.textContent =
+          "ESP32 Disconnected";
+      }
+    }
+
+    updateData();
+    updateStatus();
+
+    setInterval(
+      updateData,
+      1000
+    );
+
+    setInterval(
+      updateStatus,
+      5000
+    );
+
   </script>
 
 </body>
+
 </html>
